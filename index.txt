@@ -1,0 +1,91 @@
+docker-compose -f config-server/docker-compose.yaml up -d
+mongo mongodb://172.25.208.1:40001
+rs.initiate(
+  {
+    _id: "cfgrs",
+    configsvr: true,
+    members: [
+      { _id : 0, host : "172.25.208.1:40001" },
+      { _id : 1, host : "172.25.208.1:40002" },
+      { _id : 2, host : "172.25.208.1:40003" }
+    ]
+  }
+)
+
+rs.status()
+
+
+docker-compose -f shard1/docker-compose.yaml up -d
+mongodb://172.25.208.1:50001
+
+rs.initiate(
+  {
+    _id: "shard1rs",
+    members: [
+      { _id : 0, host : "172.25.208.1:50001" },
+      { _id : 1, host : "172.25.208.1:50002" },
+      { _id : 2, host : "172.25.208.1:50003" }
+    ]
+  }
+)
+
+rs.status()
+
+docker-compose -f mongos/docker-compose.yaml up -d
+
+mongodb://172.25.208.1:60000
+
+sh.addShard("shard1rs/172.25.208.1:50001,172.25.208.1:50002,172.25.208.1:50003")
+
+
+docker-compose -f shard2/docker-compose.yaml up -d
+mongodb://172.25.208.1:50004
+
+rs.initiate(
+  {
+    _id: "shard2rs",
+    members: [
+      { _id : 0, host : "172.25.208.1:50004" },
+      { _id : 1, host : "172.25.208.1:50005" },
+      { _id : 2, host : "172.25.208.1:50006" }
+    ]
+  }
+)
+
+rs.status()
+
+mongodb://172.25.208.1:60000
+
+sh.addShard("shard2rs/172.25.208.1:50004,172.25.208.1:50005,172.25.208.1:50006")
+
+db.createCollection("movies1")
+db.createCollection("movies2")
+db.createCollection("movies3")
+db.createCollection("movies4")
+
+sh.shardCollection("shdemo.movies1", { "name":"hashed" })
+sh.shardCollection("shdemo.movies2", { "name":"hashed" })
+sh.shardCollection("shdemo.movies3", { "name":"hashed" })
+sh.shardCollection("shdemo.movies4", { "name":"hashed" })
+
+db.movies1.getShardDistribution()
+db.movies2.getShardDistribution()
+db.movies3.getShardDistribution()
+db.movies4.getShardDistribution()
+
+
+for (let i = 0; i < 500; i++) {
+  db.movies1.insertOne({ name: `movies1 spiderman${i}`, language: 'English'});
+  db.movies2.insertOne({ name: `movies2 spiderman${i}`, language: 'English'});
+  db.movies3.insertOne({ name: `movies3 spiderman${i}`, language: 'English'});
+  db.movies4.insertOne({ name: `movies4 spiderman${i}`, language: 'English'});
+}
+
+sh.shardCollection("shdemo.event_detailst3", { "type":1 })
+sh.splitAt("shdemo.event_detailst3", { "type": "event4" });
+sh.moveChunk("shdemo.event_detailst3", { "type": "event4" }, "shard2rs");
+for (let i = 0; i < 500; i++) {
+  db.event_detailst3.insertOne({ type: `event${i % 5}`, language: 'English'});
+}
+db.event_detailst3.getShardDistribution()
+
