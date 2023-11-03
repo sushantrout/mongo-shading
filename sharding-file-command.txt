@@ -1,0 +1,78 @@
+mongod --configsvr --port 27018 --replSet rs0 --dbpath configdb --bind_ip localhost
+mongod --configsvr --port 27019 --replSet rs0 --dbpath configdb1 --bind_ip localhost
+mongo mongodb://localhost:27018
+
+rs.initiate( {
+  "_id": "rs0",
+  "configsvr": true,
+  "members": [
+    { "_id": 0, "host": "localhost:27018" },
+	{ "_id": 1, "host": "localhost:27019" }
+  ]
+})
+
+
+mongod --shardsvr --port 27020 --replSet rs1 --dbpath sharddb -bind_ip localhost
+mongo mongodb://localhost:27020
+rs.initiate({
+  "_id": "rs1",
+  "members": [
+    { "_id": 0, "host": "localhost:27020" }
+  ]
+})
+
+mongod --shardsvr --port 27021 --replSet rs2 --dbpath sharddb1 --bind_ip localhost
+mongo mongodb://localhost:27021
+rs.initiate({
+  "_id": "rs2",
+  "members": [
+    { "_id": 0, "host": "localhost:27021" }
+  ]
+})
+
+mongos --port 40000 --configdb rs0/localhost:27019
+
+mongo --port 40000
+
+sh.addShard( "rs1/localhost:27020")
+sh.addShard( "rs2/localhost:27021")
+
+
+mongos> use school
+switched to db school
+mongos> sh.enableSharding("school")
+
+db.createCollection("student")
+
+sh.shardCollection("school.student", { "name":"hashed" })
+
+db.student.getShardDistribution()
+
+
+// Specify the number of students you want to insert (e.g., 500).
+const numberOfStudents = 500;
+
+// Array of possible student names, ages, and departments.
+const names = ["Alice", "Bob", "Charlie", "David", "Eve"];
+const departments = ["Math", "Physics", "Computer Science", "Biology", "History"];
+
+// Function to generate a random integer within a given range.
+function getRandomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+// Insert 500 random student documents into a "students" collection.
+for (let i = 1; i <= numberOfStudents; i++) {
+  const randomName = names[getRandomInt(0, names.length - 1)];
+  const randomAge = getRandomInt(18, 30);
+  const randomDepartment = departments[getRandomInt(0, departments.length - 1)];
+
+  // Insert the student document into the "students" collection.
+  db.student.insert({
+    name: randomName,
+    age: randomAge,
+    department: randomDepartment,
+  });
+}
+
+db.student.getShardDistribution()
