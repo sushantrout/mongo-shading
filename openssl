@@ -1,8 +1,5 @@
-# Combine the server certificate and the private key into one .pem file
-cat server.crt private.pem > combined.pem
+# Step 1: Convert PEM and CRT to P12
+openssl pkcs12 -export -in server.crt -inkey server.pem -out keystore.p12 -name myalias -CAfile gd_bundle-g2-g1.crt -caname root
 
-# Convert the combined .pem file and the certificate chain into a PKCS12 file
-openssl pkcs12 -export -in combined.pem -inkey private.pem -chain -CAfile chain.pem -name tomcat -out keystore.p12
-
-# Convert the PKCS12 file into a Java KeyStore (JKS) file
-keytool -importkeystore -deststorepass [your_password] -destkeypass [your_password] -destkeystore my_keystore.jks -srckeystore keystore.p12 -srcstoretype PKCS12 -srcstorepass [your_password] -alias tomcat
+# Step 2: Convert P12 to JKS
+keytool -importkeystore -deststorepass mypassword -destkeypass mykeypass -destkeystore keystore.jks -srckeystore keystore.p12 -srcstoretype PKCS12 -srcstorepass myp12pass -alias myalias
