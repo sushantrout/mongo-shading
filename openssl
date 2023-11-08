@@ -3,3 +3,7 @@ openssl pkcs12 -export -in server.crt -inkey server.pem -out keystore.p12 -name 
 
 # Step 2: Convert P12 to JKS
 keytool -importkeystore -deststorepass mypassword -destkeypass mykeypass -destkeystore keystore.jks -srckeystore keystore.p12 -srcstoretype PKCS12 -srcstorepass myp12pass -alias myalias
+
+[admin@gv-rh-cv-docs-prod certificate]$ openssl pkcs12 -export -in b2e248cbcf49b895.crt -inkey  b2e248cbcf49b895.pem -out keystore.p12 -name myalias -CAfile gd_bundle-g2-g1.crt -caname root
+unable to load private key
+140498921060240:error:0906D06C:PEM routines:PEM_read_bio:no start line:pem_lib.c:707:Expecting: ANY PRIVATE KEY
