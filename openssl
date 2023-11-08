@@ -7,3 +7,5 @@ keytool -importkeystore -deststorepass mypassword -destkeypass mykeypass -destke
 [admin@gv-rh-cv-docs-prod certificate]$ openssl pkcs12 -export -in b2e248cbcf49b895.crt -inkey  b2e248cbcf49b895.pem -out keystore.p12 -name myalias -CAfile gd_bundle-g2-g1.crt -caname root
 unable to load private key
 140498921060240:error:0906D06C:PEM routines:PEM_read_bio:no start line:pem_lib.c:707:Expecting: ANY PRIVATE KEY
+
+openssl req -new -newkey rsa:2048 -nodes -keyout private.key -out server.csr
